@@ -1,15 +1,15 @@
 # copr-tool
 
-CLI app for managing COPR repos, written in Go.
+CLI app for managing Copr repos, written in Go.
 
 ```shell
 Usage: copr-tool [OPTION] [REPO...]
 
 Options:
-  enable    Add or enable one or more COPR repositories.
-  remove    Remove one or more COPR repositories.
-  list      List all (enabled and disabled) COPR repositories in your repo folder.
-  disable   Disable one or more COPR repositories without deleting the repository files.
+  enable    Add or enable one or more Copr repositories.
+  remove    Remove one or more Copr repositories.
+  list      List all (enabled and disabled) Copr repositories in your repo folder.
+  disable   Disable one or more Copr repositories without deleting the repository files.
   help      Display help text.
 
 Arguments:

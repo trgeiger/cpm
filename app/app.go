@@ -1,11 +1,12 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -20,14 +21,6 @@ const (
 	Disabled RepoState = "enabled=0"
 )
 
-func NewCoprRepo(repoPath string) (CoprRepo, error) {
-	repo := CoprRepo{
-		User:    strings.Split(repoPath, "/")[0],
-		Project: strings.Split(repoPath, "/")[1],
-	}
-	return repo, nil
-}
-
 func FedoraReleaseVersion() string {
 	osRelease, err := ini.Load("/etc/os-release")
 	if err != nil {
@@ -37,33 +30,16 @@ func FedoraReleaseVersion() string {
 	return osRelease.Section("").Key("VERSION_ID").String()
 }
 
-func RepoFileUrl(r CoprRepo) *url.URL {
-	fedoraRelease := "fedora-" + FedoraReleaseVersion()
-	repoName := r.User + "-" + r.Project + "-" + fedoraRelease + ".repo"
-	base, err := url.Parse(CoprUrl)
-	if err != nil {
-		log.Fatal(err)
+func HandleError(err error) {
+	if errors.Is(err, fs.ErrPermission) {
+		fmt.Printf("This command must be run with superuser privileges.\nError: %s\n", err)
+	} else {
+		fmt.Println(err)
 	}
-	repoUrl := base.JoinPath(r.User, r.Project, "repo", fedoraRelease, repoName)
-	return repoUrl
 }
 
-func RepoFileName(r CoprRepo) string {
-	fileName := strings.Join([]string{"_copr", CoprHost, r.User, r.Project + ".repo"}, ":")
-	return fileName
-}
-
-func RepoFilePath(r CoprRepo) string {
-	return ReposDir + RepoFileName(r)
-}
-
-func RepoExists(r CoprRepo) bool {
-	_, err := os.Stat(RepoFilePath(r))
-	return !os.IsNotExist(err)
-}
-
-func GetLocalRepoFileLines(r CoprRepo) ([]string, error) {
-	repoFile := RepoFilePath(r)
+func GetLocalRepoFileLines(r *CoprRepo) ([]string, error) {
+	repoFile := r.LocalFilePath()
 	contents, err := os.ReadFile(repoFile)
 	if err != nil {
 		return nil, err
@@ -72,15 +48,15 @@ func GetLocalRepoFileLines(r CoprRepo) ([]string, error) {
 	return strings.Split(string(contents), "\n"), nil
 }
 
-func WriteRepoToFile(r CoprRepo, content []byte) error {
-	err := os.WriteFile(RepoFilePath(r), content, 0644)
+func WriteRepoToFile(r *CoprRepo, content []byte) error {
+	err := os.WriteFile(r.LocalFilePath(), content, 0644)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func ToggleRepo(r CoprRepo, desiredState RepoState) error {
+func ToggleRepo(r *CoprRepo, desiredState RepoState) error {
 	fileLines, err := GetLocalRepoFileLines(r)
 	if err != nil {
 		return err
@@ -111,8 +87,8 @@ func ToggleRepo(r CoprRepo, desiredState RepoState) error {
 	return nil
 }
 
-func AddRepo(r CoprRepo) error {
-	resp, err := http.Get(RepoFileUrl(r).String())
+func AddRepo(r *CoprRepo) error {
+	resp, err := http.Get(r.RepoConfigUrl())
 	if err != nil {
 		return err
 	}
@@ -128,9 +104,9 @@ func AddRepo(r CoprRepo) error {
 	return nil
 }
 
-func DeleteRepo(r CoprRepo) error {
-	if RepoExists(r) {
-		err := os.Remove(RepoFilePath(r))
+func DeleteRepo(r *CoprRepo) error {
+	if r.LocalFileExists() {
+		err := os.Remove(r.LocalFilePath())
 		if err != nil {
 			return err
 		}

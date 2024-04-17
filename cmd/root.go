@@ -8,21 +8,14 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "copr-tool",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Short: "A command line tool for managing Copr repositories.",
+	Long:  `TODO`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -36,6 +29,21 @@ func Execute() {
 }
 
 func init() {
+	viper.SetConfigName("os-release")
+	viper.SetConfigType("ini")
+	viper.AddConfigPath("/etc/")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			panic(fmt.Errorf("could not fine /etc/os-release, copr-tool only functions on Fedora Linux systems: %w", err))
+
+		} else {
+			panic(fmt.Errorf("unknown fatal error: %w", err))
+		}
+	}
+	if viper.Get("default.id") != "fedora" {
+		fmt.Println("Non-Fedora distribution detected. Copr tool only functions on Fedora Linux.")
+		os.Exit(1)
+	}
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
