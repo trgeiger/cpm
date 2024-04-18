@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/afero"
@@ -23,42 +24,37 @@ import (
 // This application is a tool to generate the needed files
 // to quickly create a Cobra application.`,
 // 	Run: func(cmd *cobra.Command, args []string) {
-// 		fmt.Println("prune called")
+// 		fmt.Fprintln(out, "prune called")
 // 	},
 // }
 
-func NewPruneCmd() *cobra.Command {
+func NewPruneCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "prune",
 		Short: "Remove duplicate repository configurations.",
 		Run: func(cmd *cobra.Command, args []string) {
-			fs := afero.NewOsFs()
-			repos, err := app.GetAllRepos()
+			repos, err := app.GetAllRepos(fs)
 			if err != nil {
-				fmt.Printf("Error when retrieving locally installed repositories: %s", err)
+				fmt.Fprintf(out, "Error when retrieving locally installed repositories: %s", err)
 				os.Exit(1)
 			}
 			pruneCount := 0
 			for _, r := range repos {
 				r.FindLocalFiles(fs)
-				pruned, err := r.PruneDuplicates(fs)
+				pruned, err := r.PruneDuplicates(fs, out)
 				if pruned && err == nil {
 					pruneCount++
 				} else if pruned && err != nil {
-					fmt.Printf("Pruning attempted on %s but encountered error: %s", r.Name(), err)
+					fmt.Fprintf(out, "Pruning attempted on %s but encountered error: %s", r.Name(), err)
 					os.Exit(1)
 				} else if err != nil {
-					fmt.Printf("Error encountered: %s", err)
+					fmt.Fprintf(out, "Error encountered: %s", err)
 					os.Exit(1)
 				}
 			}
 			if pruneCount == 0 {
-				fmt.Println("Nothing to prune.")
+				fmt.Fprintln(out, "Nothing to prune.")
 			}
 		},
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(NewPruneCmd())
 }

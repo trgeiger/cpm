@@ -5,13 +5,15 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/trgeiger/copr-tool/app"
 )
 
-func NewDisableCmd() *cobra.Command {
+func NewDisableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "disable",
 		Args:  cobra.MinimumNArgs(1),
@@ -20,18 +22,14 @@ func NewDisableCmd() *cobra.Command {
 			for _, arg := range args {
 				repo, err := app.NewCoprRepo(arg)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(out, err)
 				}
-				err = app.ToggleRepo(repo, app.Disabled)
+				err = app.ToggleRepo(repo, fs, out, app.Disabled)
 				if err != nil {
-					app.HandleError(err)
+					app.HandleError(err, out)
 					os.Exit(1)
 				}
 			}
 		},
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(NewDisableCmd())
 }

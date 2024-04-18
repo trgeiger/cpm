@@ -5,13 +5,15 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/trgeiger/copr-tool/app"
 )
 
-func NewRemoveCmd() *cobra.Command {
+func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove",
 		Aliases: []string{"delete"},
@@ -21,18 +23,14 @@ func NewRemoveCmd() *cobra.Command {
 			for _, arg := range args {
 				repo, err := app.NewCoprRepo(arg)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(out, err)
 				}
-				err = app.DeleteRepo(repo)
+				err = app.DeleteRepo(repo, fs, out)
 				if err != nil {
-					app.HandleError(err)
+					app.HandleError(err, out)
 					os.Exit(1)
 				}
 			}
 		},
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(NewRemoveCmd())
 }

@@ -5,13 +5,14 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/trgeiger/copr-tool/app"
 )
 
-func NewListCmd() *cobra.Command {
+func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List installed Copr repositories",
@@ -22,26 +23,21 @@ func NewListCmd() *cobra.Command {
 				This application is a tool to generate the needed files
 				to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			repos, err := app.GetAllRepos()
+			repos, err := app.GetAllRepos(fs)
 			if err != nil {
-				fmt.Printf("Error when retrieving locally installed repositories: %s", err)
+				fmt.Fprintf(out, "Error when retrieving locally installed repositories: %s", err)
 			}
 			showDupesMessage := false
 			for _, r := range repos {
-				fs := afero.NewOsFs()
 				r.FindLocalFiles(fs)
 				if len(r.LocalFiles) > 1 {
 					showDupesMessage = true
 				}
-				fmt.Println(r.Name())
+				fmt.Fprintln(out, r.Name())
 			}
 			if showDupesMessage {
-				fmt.Println("\nDuplicate entries found. Consider running the prune command.")
+				fmt.Fprintln(out, "\nDuplicate entries found. Consider running the prune command.")
 			}
 		},
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(NewListCmd())
 }

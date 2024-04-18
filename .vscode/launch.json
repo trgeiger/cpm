@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Test enable",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                ""
+            ]
+        },
+        {
             "name": "List",
             "type": "go",
             "request": "launch",
@@ -20,7 +30,7 @@
             "program": "main.go",
             "args": ["prune"]
         },
-                {
+        {
             "name": "Enable",
             "type": "go",
             "request": "launch",
@@ -28,8 +38,8 @@
             "program": "main.go",
             "args": ["enable", "kylegospo/bazzite"]
         },
-                {
-            "name": "Launch file",
+        {
+            "name": "Disable",
             "type": "go",
             "request": "launch",
             "mode": "debug",

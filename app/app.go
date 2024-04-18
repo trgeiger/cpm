@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
+	"github.com/spf13/afero"
 )
 
 const (
@@ -30,17 +31,17 @@ func FedoraReleaseVersion() string {
 	return osRelease.Section("").Key("VERSION_ID").String()
 }
 
-func HandleError(err error) {
+func HandleError(err error, out io.Writer) {
 	if errors.Is(err, fs.ErrPermission) {
-		fmt.Printf("This command must be run with superuser privileges.\nError: %s\n", err)
+		fmt.Fprintf(out, "This command must be run with superuser privileges.\nError: %s\n", err)
 	} else {
-		fmt.Println(err)
+		fmt.Fprintln(out, err)
 	}
 }
 
-func GetLocalRepoFileLines(r *CoprRepo) ([]string, error) {
+func GetLocalRepoFileLines(r *CoprRepo, fs afero.Fs) ([]string, error) {
 	repoFile := r.LocalFilePath()
-	contents, err := os.ReadFile(repoFile)
+	contents, err := afero.ReadFile(fs, repoFile)
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +49,16 @@ func GetLocalRepoFileLines(r *CoprRepo) ([]string, error) {
 	return strings.Split(string(contents), "\n"), nil
 }
 
-func WriteRepoToFile(r *CoprRepo, content []byte) error {
-	err := os.WriteFile(r.LocalFilePath(), content, 0644)
+func WriteRepoToFile(r *CoprRepo, fs afero.Fs, content []byte) error {
+	err := afero.WriteFile(fs, r.LocalFilePath(), content, 0644)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func ToggleRepo(r *CoprRepo, desiredState RepoState) error {
-	fileLines, err := GetLocalRepoFileLines(r)
+func ToggleRepo(r *CoprRepo, fs afero.Fs, out io.Writer, desiredState RepoState) error {
+	fileLines, err := GetLocalRepoFileLines(r, fs)
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ func ToggleRepo(r *CoprRepo, desiredState RepoState) error {
 	for i, line := range fileLines {
 		if strings.Contains(line, "enabled=") {
 			if line == string(desiredState) {
-				fmt.Printf("Repository is already %s.\n", statusMessage)
+				fmt.Fprintf(out, "Repository %s is already %s.\n", r.Name(), statusMessage)
 				return nil
 			} else {
 				fileLines[i] = string(desiredState)
@@ -79,15 +80,15 @@ func ToggleRepo(r *CoprRepo, desiredState RepoState) error {
 		}
 	}
 	output := strings.Join(fileLines, "\n")
-	err = WriteRepoToFile(r, []byte(output))
+	err = WriteRepoToFile(r, fs, []byte(output))
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Repository %s/%s %s.\n", r.User, r.Project, statusMessage)
+	fmt.Fprintf(out, "Repository %s/%s %s.\n", r.User, r.Project, statusMessage)
 	return nil
 }
 
-func AddRepo(r *CoprRepo) error {
+func AddRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
 	resp, err := http.Get(r.RepoConfigUrl())
 	if err != nil {
 		return err
@@ -96,23 +97,23 @@ func AddRepo(r *CoprRepo) error {
 	if err != nil {
 		return err
 	}
-	err = WriteRepoToFile(r, []byte(output))
+	err = WriteRepoToFile(r, fs, []byte(output))
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Repository %s/%s added.\n", r.User, r.Project)
+	fmt.Fprintf(out, "Repository %s/%s added.\n", r.User, r.Project)
 	return nil
 }
 
-func DeleteRepo(r *CoprRepo) error {
-	if r.LocalFileExists() {
+func DeleteRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
+	if r.LocalFileExists(fs) {
 		err := os.Remove(r.LocalFilePath())
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Repository %s/%s deleted.\n", r.User, r.Project)
+		fmt.Fprintf(out, "Repository %s/%s deleted.\n", r.User, r.Project)
 	} else {
-		fmt.Printf("Repository %s/%s does not exist locally. Nothing to delete.\n", r.User, r.Project)
+		fmt.Fprintf(out, "Repository %s/%s does not exist locally. Nothing to delete.\n", r.User, r.Project)
 	}
 	return nil
 }

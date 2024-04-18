@@ -3,9 +3,11 @@ package app
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -23,6 +25,9 @@ type CoprRepo struct {
 }
 
 func NewCoprRepo(repoName string) (*CoprRepo, error) {
+	if matched, _ := regexp.MatchString(`\w*\/\w*`, repoName); !matched {
+		return nil, fmt.Errorf("invalid repository name: %s", repoName)
+	}
 	repo := &CoprRepo{
 		User:    strings.Split(repoName, "/")[0],
 		Project: strings.Split(repoName, "/")[1],
@@ -65,8 +70,8 @@ func (c *CoprRepo) LocalFilePath() string {
 	return ReposDir + c.DefaultLocalFileName()
 }
 
-func (c *CoprRepo) LocalFileExists() bool {
-	_, err := os.Stat(c.LocalFilePath())
+func (c *CoprRepo) LocalFileExists(fs afero.Fs) bool {
+	_, err := fs.Stat(c.LocalFilePath())
 	return !os.IsNotExist(err)
 }
 
@@ -87,7 +92,7 @@ func (c *CoprRepo) FindLocalFiles(fs afero.Fs) error {
 	return nil
 }
 
-func GetAllRepos() ([]*CoprRepo, error) {
+func GetAllRepos(fs afero.Fs) ([]*CoprRepo, error) {
 	files, err := os.ReadDir(ReposDir)
 	if err != nil {
 		return nil, err
@@ -127,9 +132,9 @@ func GetAllRepos() ([]*CoprRepo, error) {
 	return repos, nil
 }
 
-func (c *CoprRepo) PruneDuplicates(fs afero.Fs) (bool, error) {
+func (c *CoprRepo) PruneDuplicates(fs afero.Fs, out io.Writer) (bool, error) {
 	if len(c.LocalFiles) == 0 {
-		fmt.Printf("Repository %s is not installed.", c.Name())
+		fmt.Fprintf(out, "Repository %s is not installed.", c.Name())
 	} else if len(c.LocalFiles) > 1 {
 		if _, err := fs.Open(ReposDir + c.DefaultLocalFileName()); err != nil {
 			err := fs.Rename(ReposDir+c.LocalFiles[0], ReposDir+c.DefaultLocalFileName())
@@ -149,7 +154,7 @@ func (c *CoprRepo) PruneDuplicates(fs afero.Fs) (bool, error) {
 				//TODO remove the element from LocalFiles
 			}
 		}
-		fmt.Printf("Pruned %d duplicate entries for %s\n", pruneCount, c.Name())
+		fmt.Fprintf(out, "Pruned %d duplicate entries for %s\n", pruneCount, c.Name())
 		return true, nil
 	}
 	return false, nil

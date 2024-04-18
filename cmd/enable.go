@@ -5,12 +5,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/trgeiger/copr-tool/app"
 )
 
@@ -32,29 +32,22 @@ func verifyCoprRepo(r *app.CoprRepo) error {
 	return nil
 }
 
-func enableRepo(r *app.CoprRepo) error {
+func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
 	if err := verifyCoprRepo(r); err != nil {
 		return err
 	}
-	fs := afero.NewOsFs()
 	err := r.FindLocalFiles(fs)
 	if err != nil {
 		return err
 	}
-	// if len(r.LocalFiles) > 1 {
-	// 	err := r.PruneDuplicates(fs)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-	if r.LocalFileExists() {
-		err := app.ToggleRepo(r, app.Enabled)
+	if r.LocalFileExists(fs) {
+		err := app.ToggleRepo(r, fs, out, app.Enabled)
 		if err != nil {
 			return err
 		}
 		return nil
 	} else {
-		err := app.AddRepo(r)
+		err := app.AddRepo(r, fs, out)
 		if err != nil {
 			return err
 		}
@@ -62,7 +55,7 @@ func enableRepo(r *app.CoprRepo) error {
 	return nil
 }
 
-func NewEnableCmd(config *viper.Viper) *cobra.Command {
+func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:     "enable",
 		Aliases: []string{"add"},
@@ -78,19 +71,14 @@ func NewEnableCmd(config *viper.Viper) *cobra.Command {
 			for _, arg := range args {
 				repo, err := app.NewCoprRepo(arg)
 				if err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(out, err)
 				}
-				err = enableRepo(repo)
+				err = enableRepo(repo, fs, out)
 				if err != nil {
-					app.HandleError(err)
+					app.HandleError(err, out)
 					os.Exit(1)
 				}
 			}
 		},
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(NewEnableCmd(viper.GetViper()))
-
 }

@@ -5,27 +5,47 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "copr-tool",
-	Short: "A command line tool for managing Copr repositories.",
-	Long:  `TODO`,
-}
-
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	fs := afero.NewOsFs()
+	cmd, err := NewRootCmd(fs, os.Stdout)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	err = cmd.Execute()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func NewRootCmd(fs afero.Fs, out io.Writer) (*cobra.Command, error) {
+
+	cmd := &cobra.Command{
+		Use:   "copr-tool",
+		Short: "A command line tool for managing Copr repositories",
+	}
+
+	cmd.AddCommand(
+		NewDisableCmd(fs, out),
+		NewEnableCmd(fs, out),
+		NewListCmd(fs, out),
+		NewPruneCmd(fs, out),
+		NewRemoveCmd(fs, out),
+	)
+
+	return cmd, nil
 }
 
 func init() {
@@ -52,5 +72,4 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
