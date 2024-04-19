@@ -3,7 +3,6 @@ module github.com/trgeiger/copr-tool
 go 1.22.2
 
 require (
-	github.com/go-ini/ini v1.67.0
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2

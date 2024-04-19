@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/app"
+	"github.com/trgeiger/copr-tool/internal/app"
 )
 
 func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {

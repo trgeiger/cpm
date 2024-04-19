@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/app"
+	"github.com/trgeiger/copr-tool/internal/app"
 )
 
 func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -27,7 +27,7 @@ func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				}
 				err = app.DeleteRepo(repo, fs, out)
 				if err != nil {
-					app.HandleError(err, out)
+					app.SudoMessage(err, out)
 					os.Exit(1)
 				}
 			}

@@ -15,8 +15,25 @@ import (
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	fs := afero.NewOsFs()
+func Execute(fs afero.Fs) {
+
+	viper.SetConfigName("os-release")
+	viper.SetConfigType("ini")
+	viper.AddConfigPath("/etc/")
+	viper.SetFs(fs)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			panic(fmt.Errorf("could not find /etc/os-release, copr-tool only functions on Fedora Linux systems: %w", err))
+
+		} else {
+			panic(fmt.Errorf("unknown fatal error: %w", err))
+		}
+	}
+	if viper.Get("default.id") != "fedora" {
+		fmt.Println("Non-Fedora distribution detected. Copr tool only functions on Fedora Linux.")
+		os.Exit(1)
+	}
+
 	cmd, err := NewRootCmd(fs, os.Stdout)
 	if err != nil {
 		fmt.Println(err)
@@ -49,21 +66,7 @@ func NewRootCmd(fs afero.Fs, out io.Writer) (*cobra.Command, error) {
 }
 
 func init() {
-	viper.SetConfigName("os-release")
-	viper.SetConfigType("ini")
-	viper.AddConfigPath("/etc/")
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			panic(fmt.Errorf("could not fine /etc/os-release, copr-tool only functions on Fedora Linux systems: %w", err))
 
-		} else {
-			panic(fmt.Errorf("unknown fatal error: %w", err))
-		}
-	}
-	if viper.Get("default.id") != "fedora" {
-		fmt.Println("Non-Fedora distribution detected. Copr tool only functions on Fedora Linux.")
-		os.Exit(1)
-	}
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.

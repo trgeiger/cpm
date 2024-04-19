@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/spf13/afero"
-	"github.com/trgeiger/copr-tool/app"
+	"github.com/trgeiger/copr-tool/internal/testutil"
 )
 
 func TestEnableCmd(t *testing.T) {
 	tests := []struct {
 		name       string
 		args       []string
-		localFiles [][]string
+		repoFiles  [][]string // format: file/reponame, test directory folder
+		otherFiles [][]string // format: filename, path, test directory folder
 		expected   string
 	}{
 		{
@@ -22,13 +22,40 @@ func TestEnableCmd(t *testing.T) {
 				"kylegospo/bazzite",
 			},
 			expected: "Repository kylegospo/bazzite added.\n",
+			otherFiles: [][]string{
+				{"os-release", "/etc/", "f40"},
+			},
+		},
+		{
+			name: "Add invalid repo name",
+			args: []string{
+				"copr-tool",
+			},
+			expected: "invalid repository name: copr-tool\n",
+		},
+		{
+			name: "Repo does not exist",
+			args: []string{
+				"example/example",
+			},
+			expected: "repository does not exist, https://copr.fedorainfracloud.org/coprs/example/example returned 404\n",
+		},
+		{
+			name: "Repo does not support Fedora version",
+			args: []string{
+				"kylegospo/bazzite",
+			},
+			otherFiles: [][]string{
+				{"os-release", "/etc/", "f30"},
+			},
+			expected: "repository kylegospo/bazzite does not support Fedora release 30\n",
 		},
 		{
 			name: "Repo already exists and already enabled",
 			args: []string{
 				"kylegospo/bazzite",
 			},
-			localFiles: [][]string{
+			repoFiles: [][]string{
 				{"_copr:copr.fedorainfracloud.org:kylegospo:bazzite.repo", "enabled"},
 			},
 			expected: "Repository kylegospo/bazzite is already enabled.\n",
@@ -38,7 +65,7 @@ func TestEnableCmd(t *testing.T) {
 			args: []string{
 				"kylegospo/bazzite",
 			},
-			localFiles: [][]string{
+			repoFiles: [][]string{
 				{"_copr:copr.fedorainfracloud.org:kylegospo:bazzite.repo", "disabled"},
 			},
 			expected: "Repository kylegospo/bazzite enabled.\n",
@@ -46,22 +73,17 @@ func TestEnableCmd(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fs := afero.NewMemMapFs()
-		fs.Mkdir("/etc/yum.repos.d/", 0755)
+
 		b := new(bytes.Buffer)
+		fs := testutil.AssembleTestFs(test.repoFiles, test.otherFiles)
 		cmd := NewEnableCmd(fs, b)
 		cmd.SetOut(b)
 		cmd.SetArgs(test.args)
-		if test.localFiles != nil {
-			for _, file := range test.localFiles {
-				localFs := afero.NewOsFs()
-				testFile, _ := afero.ReadFile(localFs, "./test/"+file[0]+"-"+file[1])
-				_ = afero.WriteFile(fs, app.ReposDir+file[0], testFile, 0755)
-			}
-		}
+
 		cmd.Execute()
-		poop := b.String()
-		fmt.Print(poop)
+
+		outB := b.String()
+		fmt.Print(outB)
 		if b.String() != test.expected {
 			t.Fatalf("Test: \"%s\" failed", test.name)
 		}

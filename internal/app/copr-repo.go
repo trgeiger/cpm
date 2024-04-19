@@ -1,14 +1,12 @@
 package app
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"net/url"
 	"os"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/spf13/afero"
@@ -47,17 +45,17 @@ func (c *CoprRepo) RepoUrl() string {
 	return base.JoinPath(c.Name()).String()
 }
 
-func (c *CoprRepo) RemoteFileName() string {
-	return strings.Join([]string{c.User, c.Project, FedoraReleaseVersion()}, "-") + ".repo"
+func (c *CoprRepo) RemoteFileName(fs afero.Fs) string {
+	return strings.Join([]string{c.User, c.Project, FedoraReleaseVersion(fs)}, "-") + ".repo"
 }
 
-func (c *CoprRepo) RepoConfigUrl() string {
-	fedoraRelease := "fedora-" + FedoraReleaseVersion()
+func (c *CoprRepo) RepoConfigUrl(fs afero.Fs) string {
+	fedoraRelease := "fedora-" + FedoraReleaseVersion(fs)
 	base, err := url.Parse(c.RepoUrl())
 	if err != nil {
 		log.Fatal(err)
 	}
-	repoUrl := base.JoinPath("repo", fedoraRelease, c.RemoteFileName())
+	repoUrl := base.JoinPath("repo", fedoraRelease, c.RemoteFileName(fs))
 	return repoUrl.String()
 }
 
@@ -90,46 +88,6 @@ func (c *CoprRepo) FindLocalFiles(fs afero.Fs) error {
 		}
 	}
 	return nil
-}
-
-func GetAllRepos(fs afero.Fs) ([]*CoprRepo, error) {
-	files, err := os.ReadDir(ReposDir)
-	if err != nil {
-		return nil, err
-	}
-	var reposStrings []string
-	var repos []*CoprRepo
-	for _, file := range files {
-		if !file.IsDir() {
-			ioFile, err := os.Open(ReposDir + file.Name())
-
-			if err != nil {
-				return nil, err
-			}
-
-			scanner := bufio.NewScanner(ioFile)
-			for scanner.Scan() {
-				if strings.Contains(scanner.Text(), "[copr:copr") {
-					t := strings.Split(strings.Trim(scanner.Text(), "[]"), ":")
-					// r, _ := app.NewCoprRepo(t[len(t)-2] + "/" + t[len(t)-1])
-					repoName := t[len(t)-2] + "/" + t[len(t)-1]
-					if !slices.Contains(reposStrings, repoName) {
-						r, err := NewCoprRepo(repoName)
-						if err != nil {
-							return nil, err
-						}
-						repos = append(repos, r)
-						reposStrings = append(reposStrings, repoName)
-					}
-					break
-				}
-			}
-			if err := scanner.Err(); err != nil {
-				fmt.Fprintln(os.Stderr, "Issue reading repo files: ", err)
-			}
-		}
-	}
-	return repos, nil
 }
 
 func (c *CoprRepo) PruneDuplicates(fs afero.Fs, out io.Writer) (bool, error) {

@@ -1,17 +1,18 @@
 package app
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 
-	"github.com/go-ini/ini"
 	"github.com/spf13/afero"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -22,31 +23,25 @@ const (
 	Disabled RepoState = "enabled=0"
 )
 
-func FedoraReleaseVersion() string {
-	osRelease, err := ini.Load("/etc/os-release")
-	if err != nil {
-		log.Fatal("Fail to read file: ", err)
-	}
+func FedoraReleaseVersion(fs afero.Fs) string {
+	// osRelease, err := ini.Load("/etc/os-release")
+	reader := viper.New()
+	reader.SetFs(fs)
+	reader.SetConfigName("os-release")
+	reader.SetConfigType("ini")
+	reader.AddConfigPath("/etc/")
+	reader.ReadInConfig()
+	osRelease := reader.GetString("default.version_id")
 
-	return osRelease.Section("").Key("VERSION_ID").String()
+	return osRelease
 }
 
-func HandleError(err error, out io.Writer) {
+func SudoMessage(err error, out io.Writer) {
 	if errors.Is(err, fs.ErrPermission) {
 		fmt.Fprintf(out, "This command must be run with superuser privileges.\nError: %s\n", err)
 	} else {
 		fmt.Fprintln(out, err)
 	}
-}
-
-func GetLocalRepoFileLines(r *CoprRepo, fs afero.Fs) ([]string, error) {
-	repoFile := r.LocalFilePath()
-	contents, err := afero.ReadFile(fs, repoFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return strings.Split(string(contents), "\n"), nil
 }
 
 func WriteRepoToFile(r *CoprRepo, fs afero.Fs, content []byte) error {
@@ -58,10 +53,13 @@ func WriteRepoToFile(r *CoprRepo, fs afero.Fs, content []byte) error {
 }
 
 func ToggleRepo(r *CoprRepo, fs afero.Fs, out io.Writer, desiredState RepoState) error {
-	fileLines, err := GetLocalRepoFileLines(r, fs)
+	repoFile := r.LocalFilePath()
+	contents, err := afero.ReadFile(fs, repoFile)
 	if err != nil {
 		return err
 	}
+	fileLines := strings.Split(string(contents), "\n")
+
 	var statusMessage string
 	if desiredState == Enabled {
 		statusMessage = "enabled"
@@ -89,7 +87,7 @@ func ToggleRepo(r *CoprRepo, fs afero.Fs, out io.Writer, desiredState RepoState)
 }
 
 func AddRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
-	resp, err := http.Get(r.RepoConfigUrl())
+	resp, err := http.Get(r.RepoConfigUrl(fs))
 	if err != nil {
 		return err
 	}
@@ -116,4 +114,44 @@ func DeleteRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
 		fmt.Fprintf(out, "Repository %s/%s does not exist locally. Nothing to delete.\n", r.User, r.Project)
 	}
 	return nil
+}
+
+func GetAllRepos(fs afero.Fs) ([]*CoprRepo, error) {
+	files, err := os.ReadDir(ReposDir)
+	if err != nil {
+		return nil, err
+	}
+	var reposStrings []string
+	var repos []*CoprRepo
+	for _, file := range files {
+		if !file.IsDir() {
+			ioFile, err := os.Open(ReposDir + file.Name())
+
+			if err != nil {
+				return nil, err
+			}
+
+			scanner := bufio.NewScanner(ioFile)
+			for scanner.Scan() {
+				if strings.Contains(scanner.Text(), "[copr:copr") {
+					t := strings.Split(strings.Trim(scanner.Text(), "[]"), ":")
+					// r, _ := app.NewCoprRepo(t[len(t)-2] + "/" + t[len(t)-1])
+					repoName := t[len(t)-2] + "/" + t[len(t)-1]
+					if !slices.Contains(reposStrings, repoName) {
+						r, err := NewCoprRepo(repoName)
+						if err != nil {
+							return nil, err
+						}
+						repos = append(repos, r)
+						reposStrings = append(reposStrings, repoName)
+					}
+					break
+				}
+			}
+			if err := scanner.Err(); err != nil {
+				fmt.Fprintln(os.Stderr, "Issue reading repo files: ", err)
+			}
+		}
+	}
+	return repos, nil
 }
