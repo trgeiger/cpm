@@ -42,6 +42,8 @@ func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
 	if r.LocalFileExists(fs) {
 		err := app.ToggleRepo(r, fs, out, app.Enabled)
 		if err != nil {
+			app.SudoMessage(err, out)
+
 			return err
 		}
 		return nil

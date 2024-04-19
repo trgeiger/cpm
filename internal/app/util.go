@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"os"
 	"slices"
 	"strings"
 
@@ -105,7 +104,7 @@ func AddRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
 
 func DeleteRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
 	if r.LocalFileExists(fs) {
-		err := os.Remove(r.LocalFilePath())
+		err := fs.Remove(r.LocalFilePath())
 		if err != nil {
 			return err
 		}
@@ -116,8 +115,8 @@ func DeleteRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
 	return nil
 }
 
-func GetAllRepos(fs afero.Fs) ([]*CoprRepo, error) {
-	files, err := os.ReadDir(ReposDir)
+func GetAllRepos(fs afero.Fs, out io.Writer) ([]*CoprRepo, error) {
+	files, err := afero.ReadDir(fs, ReposDir)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +124,7 @@ func GetAllRepos(fs afero.Fs) ([]*CoprRepo, error) {
 	var repos []*CoprRepo
 	for _, file := range files {
 		if !file.IsDir() {
-			ioFile, err := os.Open(ReposDir + file.Name())
+			ioFile, err := fs.Open(ReposDir + file.Name())
 
 			if err != nil {
 				return nil, err
@@ -149,7 +148,7 @@ func GetAllRepos(fs afero.Fs) ([]*CoprRepo, error) {
 				}
 			}
 			if err := scanner.Err(); err != nil {
-				fmt.Fprintln(os.Stderr, "Issue reading repo files: ", err)
+				fmt.Fprintln(out, "Issue reading repo files: ", err)
 			}
 		}
 	}

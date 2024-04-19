@@ -23,7 +23,7 @@ func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				This application is a tool to generate the needed files
 				to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			repos, err := app.GetAllRepos(fs)
+			repos, err := app.GetAllRepos(fs, out)
 			if err != nil {
 				fmt.Fprintf(out, "Error when retrieving locally installed repositories: %s", err)
 			}
