@@ -5,37 +5,68 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
-
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "copr-tool",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
-}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
+func Execute(fs afero.Fs) {
+
+	viper.SetConfigName("os-release")
+	viper.SetConfigType("ini")
+	viper.AddConfigPath("/etc/")
+	viper.SetFs(fs)
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			panic(fmt.Errorf("could not find /etc/os-release, copr-tool only functions on Fedora Linux systems: %w", err))
+
+		} else {
+			panic(fmt.Errorf("unknown fatal error: %w", err))
+		}
+	}
+	if viper.Get("default.id") != "fedora" {
+		fmt.Println("Non-Fedora distribution detected. Copr tool only functions on Fedora Linux.")
+		os.Exit(1)
+	}
+
+	cmd, err := NewRootCmd(fs, os.Stdout)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err = cmd.Execute()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
+func NewRootCmd(fs afero.Fs, out io.Writer) (*cobra.Command, error) {
+
+	cmd := &cobra.Command{
+		Use:   "copr-tool",
+		Short: "A command line tool for managing Copr repositories",
+	}
+
+	cmd.AddCommand(
+		NewDisableCmd(fs, out),
+		NewEnableCmd(fs, out),
+		NewListCmd(fs, out),
+		NewPruneCmd(fs, out),
+		NewRemoveCmd(fs, out),
+	)
+
+	return cmd, nil
+}
+
 func init() {
+
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -44,5 +75,4 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

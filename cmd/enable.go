@@ -4,69 +4,51 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
-	"log"
+	"io"
 	"net/http"
-	"os"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/app"
+	"github.com/trgeiger/copr-tool/internal/app"
 )
 
-// addCmd represents the add command
-var enableCmd = &cobra.Command{
-	Use:     "enable",
-	Aliases: []string{"add"},
-	Args:    cobra.MinimumNArgs(1),
-	Short:   "Enable or add one or more COPR repositories.",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		for _, arg := range args {
-			repo, err := app.NewCoprRepo(arg)
-			if err != nil {
-				fmt.Println(err)
-			}
-			err = enableRepo(repo)
-			if err != nil {
-				if errors.Is(err, fs.ErrPermission) {
-					fmt.Printf("This command must be run with superuser privileges.\nError: %s\n", err)
-				} else {
-					fmt.Println(err)
-				}
-				os.Exit(1)
-			}
-		}
-	},
-}
-
-func verifyCoprRepo(r app.CoprRepo) error {
-	_, err := http.Get(app.RepoFileUrl(r).String())
+func verifyCoprRepo(r *app.CoprRepo, fs afero.Fs) error {
+	resp, err := http.Get(r.RepoUrl())
 	if err != nil {
 		return err
 	}
-
+	if resp.StatusCode == 404 {
+		return fmt.Errorf("repository does not exist, %s returned 404", r.RepoUrl())
+	}
+	resp, err = http.Get(r.RepoConfigUrl(fs))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == 404 {
+		return fmt.Errorf("repository %s does not support Fedora release %s", r.Name(), app.FedoraReleaseVersion(fs))
+	}
 	return nil
 }
 
-func enableRepo(r app.CoprRepo) error {
-	if verifyCoprRepo(r) != nil {
-		log.Fatal("Repository verification failed. Double-check repository name.")
+func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
+	if err := verifyCoprRepo(r, fs); err != nil {
+		return err
 	}
-	if app.RepoExists(r) {
-		err := app.ToggleRepo(r, app.Enabled)
+	err := r.FindLocalFiles(fs)
+	if err != nil {
+		return err
+	}
+	if r.LocalFileExists(fs) {
+		err := app.ToggleRepo(r, fs, out, app.Enabled)
 		if err != nil {
+			app.SudoMessage(err, out)
+
 			return err
 		}
 		return nil
 	} else {
-		err := app.AddRepo(r)
+		err := app.AddRepo(r, fs, out)
 		if err != nil {
 			return err
 		}
@@ -74,7 +56,30 @@ func enableRepo(r app.CoprRepo) error {
 	return nil
 }
 
-func init() {
-	rootCmd.AddCommand(enableCmd)
-
+func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
+	return &cobra.Command{
+		Use:     "enable",
+		Aliases: []string{"add"},
+		Args:    cobra.MinimumNArgs(1),
+		Short:   "Enable or add one or more Copr repositories.",
+		Long: `A longer description that spans multiple lines and likely contains examples
+			and usage of using your command. For example:
+			
+			Cobra is a CLI library for Go that empowers applications.
+			This application is a tool to generate the needed files
+			to quickly create a Cobra application.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			for _, arg := range args {
+				repo, err := app.NewCoprRepo(arg)
+				if err != nil {
+					fmt.Fprintln(out, err)
+				} else {
+					err = enableRepo(repo, fs, out)
+					if err != nil {
+						app.SudoMessage(err, out)
+					}
+				}
+			}
+		},
+	}
 }
