@@ -46,10 +46,8 @@ func NewPruneCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 					pruneCount++
 				} else if pruned && err != nil {
 					fmt.Fprintf(out, "Pruning attempted on %s but encountered error: %s", r.Name(), err)
-					os.Exit(1)
 				} else if err != nil {
 					fmt.Fprintf(out, "Error encountered: %s", err)
-					os.Exit(1)
 				}
 			}
 			if pruneCount == 0 {

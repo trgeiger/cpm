@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -24,11 +23,11 @@ func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				repo, err := app.NewCoprRepo(arg)
 				if err != nil {
 					fmt.Fprintln(out, err)
-				}
-				err = app.DeleteRepo(repo, fs, out)
-				if err != nil {
-					app.SudoMessage(err, out)
-					os.Exit(1)
+				} else {
+					err = app.DeleteRepo(repo, fs, out)
+					if err != nil {
+						app.SudoMessage(err, out)
+					}
 				}
 			}
 		},

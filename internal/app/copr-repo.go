@@ -112,7 +112,11 @@ func (c *CoprRepo) PruneDuplicates(fs afero.Fs, out io.Writer) (bool, error) {
 				//TODO remove the element from LocalFiles
 			}
 		}
-		fmt.Fprintf(out, "Pruned %d duplicate entries for %s\n", pruneCount, c.Name())
+		if pruneCount == 1 {
+			fmt.Fprintf(out, "Removed 1 duplicate entry for %s.\n", c.Name())
+		} else if pruneCount > 1 {
+			fmt.Fprintf(out, "Removed %d duplicate entries for %s.\n", pruneCount, c.Name())
+		}
 		return true, nil
 	}
 	return false, nil

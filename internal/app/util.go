@@ -55,6 +55,9 @@ func ToggleRepo(r *CoprRepo, fs afero.Fs, out io.Writer, desiredState RepoState)
 	repoFile := r.LocalFilePath()
 	contents, err := afero.ReadFile(fs, repoFile)
 	if err != nil {
+		if errors.Is(err, afero.ErrFileNotFound) {
+			return fmt.Errorf("repository %s/%s is not installed", r.User, r.Project)
+		}
 		return err
 	}
 	fileLines := strings.Split(string(contents), "\n")
@@ -134,7 +137,6 @@ func GetAllRepos(fs afero.Fs, out io.Writer) ([]*CoprRepo, error) {
 			for scanner.Scan() {
 				if strings.Contains(scanner.Text(), "[copr:copr") {
 					t := strings.Split(strings.Trim(scanner.Text(), "[]"), ":")
-					// r, _ := app.NewCoprRepo(t[len(t)-2] + "/" + t[len(t)-1])
 					repoName := t[len(t)-2] + "/" + t[len(t)-1]
 					if !slices.Contains(reposStrings, repoName) {
 						r, err := NewCoprRepo(repoName)

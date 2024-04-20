@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/trgeiger/copr-tool/internal/testutil"
@@ -82,8 +81,6 @@ func TestEnableCmd(t *testing.T) {
 
 		cmd.Execute()
 
-		outB := b.String()
-		fmt.Print(outB)
 		if b.String() != test.expected {
 			t.Fatalf("Test: \"%s\" failed", test.name)
 		}

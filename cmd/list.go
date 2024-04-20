@@ -27,16 +27,20 @@ func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err != nil {
 				fmt.Fprintf(out, "Error when retrieving locally installed repositories: %s", err)
 			}
-			showDupesMessage := false
-			for _, r := range repos {
-				r.FindLocalFiles(fs)
-				if len(r.LocalFiles) > 1 {
-					showDupesMessage = true
+			if len(repos) == 0 {
+				fmt.Fprintln(out, "No installed Copr repositories.")
+			} else {
+				showDupesMessage := false
+				for _, r := range repos {
+					r.FindLocalFiles(fs)
+					if len(r.LocalFiles) > 1 {
+						showDupesMessage = true
+					}
+					fmt.Fprintln(out, r.Name())
 				}
-				fmt.Fprintln(out, r.Name())
-			}
-			if showDupesMessage {
-				fmt.Fprintln(out, "\nDuplicate entries found. Consider running the prune command.")
+				if showDupesMessage {
+					fmt.Fprintln(out, "\nDuplicate entries found. Consider running the prune command.")
+				}
 			}
 		},
 	}
