@@ -12,14 +12,40 @@ import (
 	"github.com/trgeiger/cpm/internal/app"
 )
 
+var (
+	deleteAll bool
+)
+
 func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "remove",
 		Aliases: []string{"delete"},
-		Args:    cobra.MinimumNArgs(1),
-		Short:   "Uninstall one or more Copr repositories.",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if deleteAll {
+				if err := cobra.NoArgs(cmd, args); err != nil {
+					return err
+				}
+			} else {
+				if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Short: "Uninstall one or more Copr repositories.",
 		Run: func(cmd *cobra.Command, args []string) {
-			for _, arg := range args {
+			var repos []string
+			if deleteAll {
+				erepos, _ := app.GetReposList(fs, out, app.Enabled)
+				drepos, _ := app.GetReposList(fs, out, app.Disabled)
+				erepos = append(erepos, drepos...)
+				for _, r := range erepos {
+					repos = append(repos, r.Name())
+				}
+			} else {
+				repos = args
+			}
+			for _, arg := range repos {
 				repo, err := app.NewCoprRepo(arg)
 				if err != nil {
 					fmt.Fprintln(out, err)
@@ -32,4 +58,7 @@ func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			}
 		},
 	}
+	cmd.Flags().BoolVarP(&deleteAll, "all", "A", false, "delete all installed Copr repositories")
+
+	return cmd
 }
