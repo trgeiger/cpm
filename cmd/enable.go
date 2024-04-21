@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/internal/app"
+	"github.com/trgeiger/cpm/internal/app"
 )
 
 func verifyCoprRepo(r *app.CoprRepo, fs afero.Fs) error {
@@ -62,12 +62,6 @@ func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Aliases: []string{"add"},
 		Args:    cobra.MinimumNArgs(1),
 		Short:   "Enable or add one or more Copr repositories.",
-		Long: `A longer description that spans multiple lines and likely contains examples
-			and usage of using your command. For example:
-			
-			Cobra is a CLI library for Go that empowers applications.
-			This application is a tool to generate the needed files
-			to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, arg := range args {
 				repo, err := app.NewCoprRepo(arg)

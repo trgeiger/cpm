@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/trgeiger/copr-tool/internal/testutil"
+	"github.com/trgeiger/cpm/internal/testutil"
 )
 
 func TestDisableCmd(t *testing.T) {
@@ -18,9 +18,9 @@ func TestDisableCmd(t *testing.T) {
 		{
 			name: "Disable invalid repo name",
 			args: []string{
-				"copr-tool",
+				"cpm",
 			},
-			expected: "invalid repository name: copr-tool\n",
+			expected: "invalid repository name: cpm\n",
 		},
 		{
 			name: "Repo does not exist",

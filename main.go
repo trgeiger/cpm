@@ -5,7 +5,7 @@ package main
 
 import (
 	"github.com/spf13/afero"
-	"github.com/trgeiger/copr-tool/cmd"
+	"github.com/trgeiger/cpm/cmd"
 )
 
 func main() {

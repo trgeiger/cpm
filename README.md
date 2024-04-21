@@ -1,9 +1,9 @@
-# copr-tool
+# Copr Manager
 
 CLI app for managing Copr repos, written in Go.
 
 ## Usage
-`copr-tool [OPTION] [REPO(s)...]`
+`cpm [OPTION] [REPO(s)...]`
 
 ```
 Options:
@@ -20,8 +20,8 @@ Arguments:
   [REPO(s)...]  One or more repository names formatted as `author/repo`
 
 Examples:
-  copr-tool enable kylegospo/bazzite yalter/niri
-  copr-tool disable kylegospo/bazzite 
-  copr-tool remove kylegospo/bazzite
-  copr-tool list --all
+  cpm enable kylegospo/bazzite yalter/niri
+  cpm disable kylegospo/bazzite 
+  cpm remove kylegospo/bazzite
+  cpm list --all
 ```

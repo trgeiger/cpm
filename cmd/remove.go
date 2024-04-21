@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/internal/app"
+	"github.com/trgeiger/cpm/internal/app"
 )
 
 func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {

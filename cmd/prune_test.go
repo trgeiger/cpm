@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/trgeiger/copr-tool/internal/testutil"
+	"github.com/trgeiger/cpm/internal/testutil"
 )
 
 func TestPruneCmd(t *testing.T) {

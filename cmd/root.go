@@ -23,7 +23,7 @@ func Execute(fs afero.Fs) {
 	viper.SetFs(fs)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			panic(fmt.Errorf("could not find /etc/os-release, copr-tool only functions on Fedora Linux systems: %w", err))
+			panic(fmt.Errorf("could not find /etc/os-release, cpm only functions on Fedora Linux systems: %w", err))
 
 		} else {
 			panic(fmt.Errorf("unknown fatal error: %w", err))
@@ -50,8 +50,8 @@ func Execute(fs afero.Fs) {
 func NewRootCmd(fs afero.Fs, out io.Writer) (*cobra.Command, error) {
 
 	cmd := &cobra.Command{
-		Use:   "copr-tool",
-		Short: "A command line tool for managing Copr repositories",
+		Use:   "cpm",
+		Short: "Copr Manager: a command line tool for managing Copr repositories",
 	}
 
 	cmd.AddCommand(
@@ -71,7 +71,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.copr-tool.yaml)")
+	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cpm.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

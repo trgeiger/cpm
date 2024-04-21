@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/trgeiger/copr-tool/internal/testutil"
+	"github.com/trgeiger/cpm/internal/testutil"
 )
 
 func TestRemoveCmd(t *testing.T) {
@@ -18,9 +18,9 @@ func TestRemoveCmd(t *testing.T) {
 		{
 			name: "Remove invalid repo name",
 			args: []string{
-				"copr-tool",
+				"cpm",
 			},
-			expected: "invalid repository name: copr-tool\n",
+			expected: "invalid repository name: cpm\n",
 		},
 		{
 			name: "Remove uninstalled repo",

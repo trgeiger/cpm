@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/internal/app"
+	"github.com/trgeiger/cpm/internal/app"
 )
 
 var (
@@ -41,12 +41,11 @@ func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List installed Copr repositories",
-		Long: `A longer description that spans multiple lines and likely contains examples
-				and usage of using your command. For example:
-				
-				Cobra is a CLI library for Go that empowers applications.
-				This application is a tool to generate the needed files
-				to quickly create a Cobra application.`,
+		Long: `List all installed and enabled Copr repositories by default.
+For example:
+	cpm list
+	cpm list --all
+	cpm list --disabled`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var lists []app.RepoState
 			if !disabled {

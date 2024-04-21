@@ -1,4 +1,4 @@
-module github.com/trgeiger/copr-tool
+module github.com/trgeiger/cpm
 
 go 1.22.2
 

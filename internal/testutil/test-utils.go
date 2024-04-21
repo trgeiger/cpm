@@ -2,7 +2,7 @@ package testutil
 
 import (
 	"github.com/spf13/afero"
-	"github.com/trgeiger/copr-tool/internal/app"
+	"github.com/trgeiger/cpm/internal/app"
 )
 
 func AssembleTestFs(repoFiles [][]string, otherFiles [][]string) afero.Fs {

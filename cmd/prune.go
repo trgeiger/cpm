@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/trgeiger/copr-tool/internal/app"
+	"github.com/trgeiger/cpm/internal/app"
 )
 
 // pruneCmd represents the prune command
@@ -32,6 +32,7 @@ func NewPruneCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "prune",
 		Short: "Remove duplicate repository configurations.",
+		Long:  "Cleans Copr repository configuration files by removing duplicates and renaming the remaining files to standard format.",
 		Run: func(cmd *cobra.Command, args []string) {
 			repos, err := app.GetReposList(fs, out, app.Enabled)
 			if err != nil {
