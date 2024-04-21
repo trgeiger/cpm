@@ -18,7 +18,7 @@ var (
 
 func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove",
+		Use:     "remove [repo(s)...]",
 		Aliases: []string{"delete"},
 		Args: func(cmd *cobra.Command, args []string) error {
 			if deleteAll {
@@ -32,7 +32,7 @@ func NewRemoveCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			}
 			return nil
 		},
-		Short: "Uninstall one or more Copr repositories.",
+		Short: "Uninstall one or more (space-separated) Copr repositories.",
 		Run: func(cmd *cobra.Command, args []string) {
 			var repos []string
 			if deleteAll {

@@ -58,10 +58,10 @@ func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
 
 func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
-		Use:     "enable",
+		Use:     "enable [repo(s)...]",
 		Aliases: []string{"add"},
 		Args:    cobra.MinimumNArgs(1),
-		Short:   "Enable or add one or more Copr repositories.",
+		Short:   "Enable or add one or more (space-separated) Copr repositories.",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, arg := range args {
 				repo, err := app.NewCoprRepo(arg)

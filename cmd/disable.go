@@ -14,9 +14,9 @@ import (
 
 func NewDisableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	return &cobra.Command{
-		Use:   "disable",
+		Use:   "disable [repo(s)...]",
 		Args:  cobra.MinimumNArgs(1),
-		Short: "Disable one or more Copr repositories without uninstalling them.",
+		Short: "Disable one or more (space-separated) Copr repositories without uninstalling them.",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, arg := range args {
 				repo, err := app.NewCoprRepo(arg)
