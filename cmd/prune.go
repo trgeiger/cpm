@@ -33,7 +33,7 @@ func NewPruneCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Use:   "prune",
 		Short: "Remove duplicate repository configurations.",
 		Run: func(cmd *cobra.Command, args []string) {
-			repos, err := app.GetAllRepos(fs, out)
+			repos, err := app.GetReposList(fs, out, app.Enabled)
 			if err != nil {
 				fmt.Fprintf(out, "Error when retrieving locally installed repositories: %s", err)
 				os.Exit(1)

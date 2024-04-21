@@ -12,8 +12,33 @@ import (
 	"github.com/trgeiger/copr-tool/internal/app"
 )
 
+var (
+	enabled  bool
+	disabled bool
+	showAll  bool
+	verbose  bool
+)
+
+func printReposList(fs afero.Fs, out io.Writer, repoList []*app.CoprRepo) {
+	if len(repoList) == 0 {
+		return
+	} else {
+		showDupesMessage := false
+		for _, r := range repoList {
+			r.FindLocalFiles(fs)
+			if len(r.LocalFiles) > 1 {
+				showDupesMessage = true
+			}
+			fmt.Fprintln(out, r.Name())
+		}
+		if showDupesMessage {
+			fmt.Fprintln(out, "\nDuplicate entries found. Consider running the prune command.")
+		}
+	}
+}
+
 func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List installed Copr repositories",
 		Long: `A longer description that spans multiple lines and likely contains examples
@@ -23,25 +48,42 @@ func NewListCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				This application is a tool to generate the needed files
 				to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			repos, err := app.GetAllRepos(fs, out)
-			if err != nil {
-				fmt.Fprintf(out, "Error when retrieving locally installed repositories: %s", err)
+			var lists []app.RepoState
+			if !disabled {
+				lists = append(lists, app.Enabled)
 			}
-			if len(repos) == 0 {
-				fmt.Fprintln(out, "No installed Copr repositories.")
-			} else {
-				showDupesMessage := false
-				for _, r := range repos {
-					r.FindLocalFiles(fs)
-					if len(r.LocalFiles) > 1 {
-						showDupesMessage = true
+			if disabled || showAll {
+				lists = append(lists, app.Disabled)
+			}
+
+			for i, list := range lists {
+				var listState string
+				if list == app.Disabled {
+					listState = "disabled"
+				} else {
+					listState = "enabled"
+				}
+				printList, err := app.GetReposList(fs, out, list)
+				if err != nil {
+					fmt.Fprintf(out, "Error when retrieving local repositories: %s", err)
+				}
+				if len(printList) == 0 {
+					fmt.Fprintf(out, "- No %s repositories\n", listState)
+				} else {
+					fmt.Fprintf(out, "- List of %s repositories:\n", listState)
+					printReposList(fs, out, printList)
+					if i == 0 && len(lists) > 1 {
+						fmt.Fprintf(out, "\n")
 					}
-					fmt.Fprintln(out, r.Name())
-				}
-				if showDupesMessage {
-					fmt.Fprintln(out, "\nDuplicate entries found. Consider running the prune command.")
 				}
 			}
+
 		},
 	}
+
+	cmd.Flags().BoolVarP(&enabled, "enabled", "e", true, "show enabled Copr repositories (default)")
+	cmd.Flags().BoolVarP(&disabled, "disabled", "d", false, "show disabled Copr repositories")
+	cmd.Flags().BoolVarP(&showAll, "all", "A", false, "show enabled and disabled Copr repositories")
+
+	return cmd
 }

@@ -118,7 +118,7 @@ func DeleteRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
 	return nil
 }
 
-func GetAllRepos(fs afero.Fs, out io.Writer) ([]*CoprRepo, error) {
+func GetReposList(fs afero.Fs, out io.Writer, state RepoState) ([]*CoprRepo, error) {
 	files, err := afero.ReadDir(fs, ReposDir)
 	if err != nil {
 		return nil, err
@@ -127,6 +127,9 @@ func GetAllRepos(fs afero.Fs, out io.Writer) ([]*CoprRepo, error) {
 	var repos []*CoprRepo
 	for _, file := range files {
 		if !file.IsDir() {
+			var repoName string
+			addToResult := false
+			isCoprRepo := false
 			ioFile, err := fs.Open(ReposDir + file.Name())
 
 			if err != nil {
@@ -134,20 +137,26 @@ func GetAllRepos(fs afero.Fs, out io.Writer) ([]*CoprRepo, error) {
 			}
 
 			scanner := bufio.NewScanner(ioFile)
+
 			for scanner.Scan() {
+				// If we see Copr repo, store name in repoName
 				if strings.Contains(scanner.Text(), "[copr:copr") {
 					t := strings.Split(strings.Trim(scanner.Text(), "[]"), ":")
-					repoName := t[len(t)-2] + "/" + t[len(t)-1]
-					if !slices.Contains(reposStrings, repoName) {
-						r, err := NewCoprRepo(repoName)
-						if err != nil {
-							return nil, err
-						}
-						repos = append(repos, r)
-						reposStrings = append(reposStrings, repoName)
-					}
-					break
+					repoName = t[len(t)-2] + "/" + t[len(t)-1]
+					isCoprRepo = true
 				}
+				// If we see our desired state, flip our flag
+				if strings.Contains(scanner.Text(), string(state)) && isCoprRepo {
+					addToResult = true
+				}
+			}
+			if addToResult && !slices.Contains(reposStrings, repoName) {
+				r, err := NewCoprRepo(repoName)
+				if err != nil {
+					return nil, err
+				}
+				repos = append(repos, r)
+				reposStrings = append(reposStrings, repoName)
 			}
 			if err := scanner.Err(); err != nil {
 				fmt.Fprintln(out, "Issue reading repo files: ", err)
