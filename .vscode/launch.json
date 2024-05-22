@@ -23,6 +23,14 @@
             "args": ["list"]
         },
         {
+            "name": "List disabled",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": ["list", "-d"]
+        },
+        {
             "name": "Prune",
             "type": "go",
             "request": "launch",
@@ -37,6 +45,14 @@
             "mode": "debug",
             "program": "main.go",
             "args": ["enable", "kylegospo/bazzite"]
+        },
+        {
+            "name": "Enable multilib",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": ["enable", "-m", "kylegospo/bazzite-multilib"]
         },
         {
             "name": "Disable",

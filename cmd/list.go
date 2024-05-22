@@ -16,7 +16,7 @@ var (
 	enabled  bool
 	disabled bool
 	showAll  bool
-	verbose  bool
+	// verbose  bool
 )
 
 func printReposList(fs afero.Fs, out io.Writer, repoList []*app.CoprRepo) {

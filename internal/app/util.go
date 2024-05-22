@@ -88,8 +88,8 @@ func ToggleRepo(r *CoprRepo, fs afero.Fs, out io.Writer, desiredState RepoState)
 	return nil
 }
 
-func AddRepo(r *CoprRepo, fs afero.Fs, out io.Writer) error {
-	resp, err := http.Get(r.RepoConfigUrl(fs))
+func AddRepo(r *CoprRepo, fs afero.Fs, out io.Writer, multi bool) error {
+	resp, err := http.Get(r.RepoConfigUrl(fs, multi))
 	if err != nil {
 		return err
 	}

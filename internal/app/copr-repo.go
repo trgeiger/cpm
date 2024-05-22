@@ -49,13 +49,18 @@ func (c *CoprRepo) RemoteFileName(fs afero.Fs) string {
 	return strings.Join([]string{c.User, c.Project, FedoraReleaseVersion(fs)}, "-") + ".repo"
 }
 
-func (c *CoprRepo) RepoConfigUrl(fs afero.Fs) string {
+func (c *CoprRepo) RepoConfigUrl(fs afero.Fs, multi bool) string {
 	fedoraRelease := "fedora-" + FedoraReleaseVersion(fs)
 	base, err := url.Parse(c.RepoUrl())
 	if err != nil {
 		log.Fatal(err)
 	}
 	repoUrl := base.JoinPath("repo", fedoraRelease, c.RemoteFileName(fs))
+	if multi {
+		values := repoUrl.Query()
+		values.Add("arch", "x86_64")
+		repoUrl.RawQuery = values.Encode()
+	}
 	return repoUrl.String()
 }
 

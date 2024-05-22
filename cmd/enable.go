@@ -13,7 +13,11 @@ import (
 	"github.com/trgeiger/cpm/internal/app"
 )
 
-func verifyCoprRepo(r *app.CoprRepo, fs afero.Fs) error {
+var (
+	multilib bool
+)
+
+func verifyCoprRepo(r *app.CoprRepo, fs afero.Fs, multi bool) error {
 	resp, err := http.Get(r.RepoUrl())
 	if err != nil {
 		return err
@@ -21,7 +25,7 @@ func verifyCoprRepo(r *app.CoprRepo, fs afero.Fs) error {
 	if resp.StatusCode == 404 {
 		return fmt.Errorf("repository does not exist, %s returned 404", r.RepoUrl())
 	}
-	resp, err = http.Get(r.RepoConfigUrl(fs))
+	resp, err = http.Get(r.RepoConfigUrl(fs, multi))
 	if err != nil {
 		return err
 	}
@@ -31,8 +35,8 @@ func verifyCoprRepo(r *app.CoprRepo, fs afero.Fs) error {
 	return nil
 }
 
-func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
-	if err := verifyCoprRepo(r, fs); err != nil {
+func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer, multi bool) error {
+	if err := verifyCoprRepo(r, fs, multi); err != nil {
 		return err
 	}
 	err := r.FindLocalFiles(fs)
@@ -48,7 +52,7 @@ func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
 		}
 		return nil
 	} else {
-		err := app.AddRepo(r, fs, out)
+		err := app.AddRepo(r, fs, out, multi)
 		if err != nil {
 			return err
 		}
@@ -57,7 +61,7 @@ func enableRepo(r *app.CoprRepo, fs afero.Fs, out io.Writer) error {
 }
 
 func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "enable [repo(s)...]",
 		Aliases: []string{"add"},
 		Args:    cobra.MinimumNArgs(1),
@@ -68,7 +72,7 @@ func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 				if err != nil {
 					fmt.Fprintln(out, err)
 				} else {
-					err = enableRepo(repo, fs, out)
+					err = enableRepo(repo, fs, out, multilib)
 					if err != nil {
 						app.SudoMessage(err, out)
 					}
@@ -76,4 +80,8 @@ func NewEnableCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			}
 		},
 	}
+
+	cmd.Flags().BoolVarP(&multilib, "multilib", "m", false, "add repository with multilib enabled")
+
+	return cmd
 }

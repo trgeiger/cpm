@@ -69,6 +69,17 @@ func TestEnableCmd(t *testing.T) {
 			},
 			expected: "Repository kylegospo/bazzite enabled.\n",
 		},
+		{
+			name: "Repo does not exist, enabling as multilib",
+			args: []string{
+				"-m",
+				"kylegospo/bazzite-multilib",
+			},
+			otherFiles: [][]string{
+				{"os-release", "/etc/", "f40"},
+			},
+			expected: "Repository kylegospo/bazzite-multilib added.\n",
+		},
 	}
 
 	for _, test := range tests {
