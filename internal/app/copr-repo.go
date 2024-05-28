@@ -84,7 +84,7 @@ func (c *CoprRepo) FindLocalFiles(fs afero.Fs) error {
 		return err
 	}
 	for _, file := range files {
-		result, err := afero.FileContainsBytes(fs, ReposDir+file.Name(), []byte(c.Name()))
+		result, err := afero.FileContainsBytes(fs, ReposDir+file.Name(), []byte("/"+c.Name()+"/"))
 		if err != nil {
 			return err
 		}

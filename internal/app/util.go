@@ -148,6 +148,8 @@ func GetReposList(fs afero.Fs, out io.Writer, state RepoState) ([]*CoprRepo, err
 				// If we see our desired state, flip our flag
 				if strings.Contains(scanner.Text(), string(state)) && isCoprRepo {
 					addToResult = true
+					// Break once we have a result from the first config block
+					break
 				}
 			}
 			if addToResult && !slices.Contains(reposStrings, repoName) {
